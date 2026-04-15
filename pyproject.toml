@@ -1,0 +1,45 @@
+[project]
+name = "starkbank-challenge"
+version = "0.1.0"
+description = "Stark Bank backend challenge - Invoice creation and webhook-driven transfers"
+requires-python = ">=3.14"
+dependencies = [
+    "starkbank",
+    "flask",
+    "huey",
+    "redis",
+    "peewee",
+    "peewee-migrate",
+    "faker",
+    "gunicorn",
+    "python-dotenv",
+    "psycopg2-binary",
+    "pydantic[email]",
+    "pydantic-br",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "factory-boy",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/cli/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]
