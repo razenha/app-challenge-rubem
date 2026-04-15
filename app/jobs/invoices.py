@@ -25,14 +25,13 @@ def create_random_invoices():
     selected_payers = Payer.select_random(count)
 
     invoices = []
-    with db.atomic():
-        for payer in selected_payers:
-            invoice = Invoice.create(
-                payer=payer,
-                status=InvoiceStatus.PENDING.value,
-                amount=random.randint(INVOICE_MIN_AMOUNT, INVOICE_MAX_AMOUNT),
-            )
-            invoices.append(invoice)
+    for payer in selected_payers:
+        invoice = Invoice.create(
+            payer=payer,
+            status=InvoiceStatus.PENDING.value,
+            amount=random.randint(INVOICE_MIN_AMOUNT, INVOICE_MAX_AMOUNT),
+        )
+        invoices.append(invoice)
 
     return invoices
 
@@ -50,10 +49,12 @@ def _parse_cron(expr):
 
 @huey.periodic_task(_parse_cron(INVOICE_SCHEDULE_CRON))
 def create_invoices():
-    invoices = create_random_invoices()
-    service = StarkBankInvoiceService()
-    service.send(invoices)
+    with db.atomic():
+        invoices = create_random_invoices()
+        service = StarkBankInvoiceService()
+        service.send(invoices)
 
-    logger.info(f"Created and sent {len(invoices)} invoices.")
+        logger.info(f"Created and sent {len(invoices)} invoices.")
 
-    return len(invoices)
+        return len(invoices)
+

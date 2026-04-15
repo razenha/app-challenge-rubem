@@ -1,7 +1,7 @@
 import logging
 
 from app.db import db
-from app.models.invoice import Invoice
+from app.models.invoice import Invoice, InvoiceStatus
 from app.jobs.transfers import send_transfer
 from app.services.webhooks.strategies._invoice_lookup import extract_correlation_id, find_invoice
 
@@ -22,6 +22,16 @@ class InvoiceCreditedStrategy:
             return
 
         with db.atomic():
+            # Lock the row to serialize concurrent webhooks for the same invoice;
+            # otherwise two simultaneous `credited` events could each enqueue a transfer.
+            invoice = Invoice.select().where(Invoice.id == invoice.id).for_update().get()
+
+            if invoice.status == InvoiceStatus.CREDITED.value:
+                logger.info(
+                    f"Invoice {invoice.stark_id} already credited; skipping transfer enqueue"
+                )
+                return
+
             invoice.mark_as_credited(stark_id=sb_invoice.id, processing_fee=sb_invoice.fee)
             invoice.save()
 
