@@ -1,5 +1,6 @@
 from flask import Flask
 
+from app.config import validate_required_config
 from app.db import db
 from app.health.routes import health_bp
 from app.logging_setup import init_logging
@@ -11,6 +12,7 @@ from app.webhooks.routes import webhook_bp
 def create_app():
     app = Flask(__name__)
 
+    validate_required_config()
     init_logging()
     init_starkbank()
 

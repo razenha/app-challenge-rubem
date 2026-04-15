@@ -94,8 +94,9 @@ def mock_sdk(monkeypatch):
 
 @pytest.fixture
 def app(monkeypatch):
-    # Skip StarkBank credential setup in tests
+    # Skip StarkBank credential setup and config validation in tests
     monkeypatch.setattr("app.flask_app.init_starkbank", lambda: None)
+    monkeypatch.setattr("app.flask_app.validate_required_config", lambda: None)
     from app.flask_app import create_app
 
     app = create_app()

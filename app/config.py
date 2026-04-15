@@ -31,3 +31,26 @@ DEBUG = os.getenv("FLASK_DEBUG", "0") == "1"
 def get_private_key():
     path = Path(STARKBANK_PRIVATE_KEY_PATH)
     return path.read_text()
+
+
+class ConfigError(RuntimeError):
+    pass
+
+
+def validate_required_config():
+    errors = []
+
+    if not STARKBANK_PROJECT_ID:
+        errors.append("STARKBANK_PROJECT_ID is not set")
+
+    key_path = Path(STARKBANK_PRIVATE_KEY_PATH)
+    if not key_path.is_file():
+        errors.append(
+            f"STARKBANK_PRIVATE_KEY_PATH points to '{STARKBANK_PRIVATE_KEY_PATH}', "
+            "but no readable file was found at that path"
+        )
+
+    if errors:
+        raise ConfigError(
+            "Invalid configuration:\n  - " + "\n  - ".join(errors)
+        )
