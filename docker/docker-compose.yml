@@ -1,0 +1,55 @@
+# Stack da aplicação (web + worker). As dependências (Postgres e Redis)
+# devem estar rodando separadamente e são acessadas via DATABASE_URL e
+# REDIS_URL.
+#
+# Uso:
+#   cd docker && docker compose up --build
+#
+# Variáveis esperadas no .env (na raiz do projeto ou exportadas no shell):
+#   DATABASE_URL=postgresql://user:pass@host:5432/dbname
+#   REDIS_URL=redis://host:6379/0
+#   STARKBANK_ENVIRONMENT=sandbox
+#   STARKBANK_PROJECT_ID=...
+#   INVOICE_SCHEDULE_CRON=0 */3 * * *   (opcional)
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    image: starkbank-challenge-web:latest
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      STARKBANK_ENVIRONMENT: ${STARKBANK_ENVIRONMENT:-sandbox}
+      STARKBANK_PROJECT_ID: ${STARKBANK_PROJECT_ID}
+      STARKBANK_PRIVATE_KEY_PATH: /app/private-key.pem
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ../${STARKBANK_PRIVATE_KEY_PATH}:/app/private-key.pem:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    image: starkbank-challenge-worker:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      STARKBANK_ENVIRONMENT: ${STARKBANK_ENVIRONMENT:-sandbox}
+      STARKBANK_PROJECT_ID: ${STARKBANK_PROJECT_ID}
+      STARKBANK_PRIVATE_KEY_PATH: /app/private-key.pem
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      INVOICE_SCHEDULE_CRON: ${INVOICE_SCHEDULE_CRON:-0 */3 * * *}
+      INVOICE_MIN_COUNT: ${INVOICE_MIN_COUNT:-8}
+      INVOICE_MAX_COUNT: ${INVOICE_MAX_COUNT:-12}
+      INVOICE_MIN_AMOUNT: ${INVOICE_MIN_AMOUNT:-1000}
+      INVOICE_MAX_AMOUNT: ${INVOICE_MAX_AMOUNT:-100000}
+    volumes:
+      - ../${STARKBANK_PRIVATE_KEY_PATH}:/app/private-key.pem:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

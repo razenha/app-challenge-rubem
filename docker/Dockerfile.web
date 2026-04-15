@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1.7
+
+FROM python:3.14-slim AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Non-root user para rodar a app
+RUN groupadd --system app && useradd --system --gid app --home /app app
+
+WORKDIR /app
+
+# Camada de dependências separada para aproveitar cache do Docker
+COPY pyproject.toml ./
+RUN pip install .
+
+# Código da aplicação
+COPY app/ ./app/
+COPY migrations/ ./migrations/
+
+RUN chown -R app:app /app
+USER app
+
+EXPOSE 5000
+
+# Flask via gunicorn (produção). 2 workers é baseline; ajustar via env em prod.
+CMD ["gunicorn", \
+     "--bind", "0.0.0.0:5000", \
+     "--workers", "2", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "app.flask_app:create_app()"]
